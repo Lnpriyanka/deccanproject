@@ -1,41 +1,84 @@
-def process_csv_and_fetch_metadata(input_df):
-    user_ids = input_df['UID'].unique().tolist()
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "User Metadata"
+import streamlit as st
+import pandas as pd
+import requests
+from openpyxl import Workbook
+from io import BytesIO
+from datetime import datetime
 
-    headers_row = ["User ID", "Display Name", "First Name", "Last Name", "Email", "Gender", "DOB", "College"]
-    ws.append(headers_row)
-
+# --- Function to fetch metadata for a single UID ---
+def fetch_metadata(user_id):
     base_url = "https://sso.tpml.in/auth/get-user-metadata?userId="
-    headers = {
-        "Authorization": "Bearer YOUR_TOKEN_HERE",  # add if required
-        "Content-Type": "application/json"
-    }
+    url = base_url + str(user_id)
 
-    for user_id in user_ids:
-        url = base_url + str(user_id)
-        response = requests.get(url, headers=headers)
-
+    try:
+        response = requests.get(url, timeout=10)  # add headers if needed
         if response.status_code == 200:
             data = response.json()
             metadata = data.get("metadata", {})
-            display_name = metadata.get("displayName", "N/A")
-            first_name = metadata.get("first_name", "N/A")
-            last_name = metadata.get("last_name", "N/A")
-            email = metadata.get("dh", {}).get("newsLetter", {}).get("email", "N/A")
-            gender = metadata.get("gender", "N/A")
-            dob = f'{metadata.get("dob", {}).get("day", "N/A")}-{metadata.get("dob", {}).get("month", "N/A")}-{metadata.get("dob", {}).get("year", "N/A")}'
-            college = metadata.get("college", "N/A")
-
-            row = [user_id, display_name, first_name, last_name, email, gender, dob, college]
-            ws.append(row)
+            return {
+                "User ID": user_id,
+                "Display Name": metadata.get("displayName", "N/A"),
+                "First Name": metadata.get("first_name", "N/A"),
+                "Last Name": metadata.get("last_name", "N/A"),
+                "Email": metadata.get("dh", {}).get("newsLetter", {}).get("email", "N/A"),
+                "Gender": metadata.get("gender", "N/A"),
+                "DOB": f'{metadata.get("dob", {}).get("day", "N/A")}-'
+                       f'{metadata.get("dob", {}).get("month", "N/A")}-'
+                       f'{metadata.get("dob", {}).get("year", "N/A")}',
+                "College": metadata.get("college", "N/A"),
+            }
         else:
-            row = [user_id, f"Failed: {response.status_code}", "", "", "", "", "", ""]
-            ws.append(row)
+            return {"User ID": user_id, "Error": f"Failed ({response.status_code})"}
+    except Exception as e:
+        return {"User ID": user_id, "Error": str(e)}
 
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
-    return output
+# --- Streamlit UI ---
+st.title("🎯 User Metadata Fetcher")
 
+# Option 1: Enter a single UID
+uid_input = st.text_input("Enter a UID to fetch metadata:")
+
+if st.button("Fetch Single UID") and uid_input:
+    result = fetch_metadata(uid_input)
+    st.json(result)
+
+# Divider
+st.markdown("---")
+
+# Option 2: Upload a CSV
+uploaded_file = st.file_uploader("Upload CSV with UID column", type="csv")
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    st.write("📄 Uploaded CSV Preview", df.head())
+
+    if st.button("Process CSV and Download Excel"):
+        user_ids = df['UID'].unique().tolist()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "User Metadata"
+        headers = ["User ID", "Display Name", "First Name", "Last Name", "Email", "Gender", "DOB", "College"]
+        ws.append(headers)
+
+        results = []
+        for uid in user_ids:
+            meta = fetch_metadata(uid)
+            results.append(meta)
+            ws.append([meta.get(h, "") for h in headers])
+
+        # Show results in Streamlit
+        st.write("✅ Results", pd.DataFrame(results))
+
+        # Save to Excel
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        filename = f"user_metadata_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        st.download_button(
+            "⬇️ Download Excel",
+            output,
+            file_name=filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
