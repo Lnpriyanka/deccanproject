@@ -52,7 +52,7 @@ if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.write("📄 Uploaded CSV Preview", df.head())
 
-    if st.button("Process CSV and Download Excel"):
+    if st.button("Process CSV"):
         user_ids = df['UID'].unique().tolist()
 
         wb = Workbook()
@@ -82,4 +82,5 @@ if uploaded_file:
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
