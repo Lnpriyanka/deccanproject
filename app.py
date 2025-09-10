@@ -33,10 +33,10 @@ def fetch_metadata(user_id):
         return {"User ID": user_id, "Error": str(e)}
 
 # --- Streamlit UI ---
-st.title("🎯 User Metadata Fetcher")
+st.title("DECCAN HEARLD")
 
 # Option 1: Enter a single UID
-uid_input = st.text_input("Enter a UID to fetch metadata:")
+uid_input = st.text_input("Enter a UID to fetch Details:")
 
 if st.button("Fetch Single UID") and uid_input:
     result = fetch_metadata(uid_input)
@@ -46,7 +46,7 @@ if st.button("Fetch Single UID") and uid_input:
 st.markdown("---")
 
 # Option 2: Upload a CSV
-uploaded_file = st.file_uploader("Upload CSV with UID column", type="csv")
+uploaded_file = st.file_uploader("Upload CSV", type="csv")
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -82,3 +82,4 @@ if uploaded_file:
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
