@@ -7,7 +7,7 @@ from datetime import datetime
 
 # --- Function to fetch metadata for a single UID ---
 def fetch_metadata(user_id):
-    base_url = "https://sso.tpml.in/auth/get-user-metadata?userId="
+    base_url = "https://sso-dev.tpml.in/auth/get-user-metadata?userId="
     url = base_url + str(user_id)
 
     try:
@@ -82,5 +82,6 @@ if uploaded_file:
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
